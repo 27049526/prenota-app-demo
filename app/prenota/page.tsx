@@ -33,13 +33,8 @@ export default function Home() {
   ) {
     const orari: string[] = [];
 
-    const [oraInizio, minutiInizio] = inizio
-      .split(":")
-      .map(Number);
-
-    const [oraFine, minutiFine] = fine
-      .split(":")
-      .map(Number);
+    const [oraInizio, minutiInizio] = inizio.split(":").map(Number);
+    const [oraFine, minutiFine] = fine.split(":").map(Number);
 
     let minutiTotali = oraInizio * 60 + minutiInizio;
     const minutiFinali = oraFine * 60 + minutiFine;
@@ -82,7 +77,6 @@ export default function Home() {
   const [orari, setOrari] = useState<string[]>([]);
 
   async function caricaDisponibilita(giornoValore: string) {
-    // 1. Controlliamo prima se la data è una chiusura straordinaria
     const {
       data: chiusura,
       error: erroreChiusura,
@@ -104,14 +98,11 @@ export default function Home() {
       return;
     }
 
-    // Se la data è chiusa, non mostriamo nessun orario
     if (chiusura) {
       setOrari([]);
       return;
     }
 
-    // 2. Se non è una chiusura straordinaria,
-    // controlliamo gli orari settimanali
     const data = new Date(giornoValore + "T12:00:00");
     const giornoSettimana = data.getDay();
 
@@ -120,9 +111,7 @@ export default function Home() {
       error,
     } = await supabase
       .from("availability")
-      .select(
-        "start_time, end_time, is_active, day_enabled"
-      )
+      .select("start_time, end_time, is_active, day_enabled")
       .eq("day_of_week", giornoSettimana)
       .eq("is_active", true)
       .eq("day_enabled", true);
@@ -226,41 +215,78 @@ export default function Home() {
     setPrenotazioneConfermata(true);
   }
 
+  const orariDisponibili = orari.filter(
+    (orario) => !orariOccupati.includes(orario)
+  );
+
   if (prenotazioneConfermata) {
     return (
       <main
         style={{
           minHeight: "100vh",
-          background: "#f5f5f5",
+          background:
+            "linear-gradient(180deg, #f7f7f8 0%, #eeeeef 100%)",
           fontFamily: "Arial, sans-serif",
-          padding: "30px 16px",
+          padding: "24px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         <div
           style={{
-            maxWidth: "500px",
-            margin: "0 auto",
+            width: "100%",
+            maxWidth: "460px",
             background: "white",
             padding: "28px",
-            borderRadius: "18px",
+            borderRadius: "24px",
             textAlign: "center",
+            boxShadow: "0 12px 35px rgba(0,0,0,0.08)",
           }}
         >
-          <div style={{ fontSize: "60px" }}>✅</div>
+          <div
+            style={{
+              width: "78px",
+              height: "78px",
+              borderRadius: "50%",
+              background: "#111111",
+              color: "white",
+              margin: "0 auto 18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "38px",
+            }}
+          >
+            ✓
+          </div>
 
-          <h1>Prenotazione confermata</h1>
+          <h1
+            style={{
+              margin: "0 0 10px",
+              fontSize: "28px",
+              color: "#111111",
+            }}
+          >
+            Prenotazione confermata
+          </h1>
 
-          <p>
-            Ciao <strong>{nome}</strong>, il tuo appuntamento è stato
+          <p
+            style={{
+              color: "#666",
+              lineHeight: 1.5,
+              marginBottom: "24px",
+            }}
+          >
+            Ciao <strong>{nome}</strong>, il tuo appuntamento è
             confermato.
           </p>
 
           <div
             style={{
-              marginTop: "24px",
               padding: "18px",
-              background: "#f5f5f5",
-              borderRadius: "12px",
+              background: "#f6f6f7",
+              borderRadius: "16px",
               textAlign: "left",
             }}
           >
@@ -279,8 +305,7 @@ export default function Home() {
             </p>
 
             <p>
-              <strong>Ora:</strong>{" "}
-              {orarioSelezionato}
+              <strong>Ora:</strong> {orarioSelezionato}
             </p>
 
             <p>
@@ -288,368 +313,613 @@ export default function Home() {
               {servizioSelezionato.durata}
             </p>
 
-            <p>
+            <p style={{ marginBottom: 0 }}>
               <strong>Prezzo:</strong>{" "}
               {servizioSelezionato.prezzo}
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={() => (window.location.href = "/")}
+            style={{
+              width: "100%",
+              marginTop: "22px",
+              padding: "16px",
+              borderRadius: "14px",
+              border: "none",
+              background: "#111111",
+              color: "white",
+              fontWeight: "bold",
+              fontSize: "16px",
+              cursor: "pointer",
+            }}
+          >
+            Torna alla home
+          </button>
         </div>
       </main>
     );
   }
 
-  const orariDisponibili = orari.filter(
-    (orario) => !orariOccupati.includes(orario)
-  );
-
   return (
     <main
       style={{
         minHeight: "100vh",
-        background: "#f5f5f5",
+        background:
+          "linear-gradient(180deg, #f7f7f8 0%, #eeeeef 100%)",
         fontFamily: "Arial, sans-serif",
-        padding: "30px 16px",
+        padding: "18px 14px 40px",
       }}
     >
       <div
         style={{
-          maxWidth: "500px",
+          width: "100%",
+          maxWidth: "520px",
           margin: "0 auto",
-          background: "white",
-          padding: "28px",
-          borderRadius: "18px",
         }}
       >
+        <button
+          type="button"
+          onClick={() => (window.location.href = "/")}
+          style={{
+            border: "none",
+            background: "transparent",
+            padding: "8px 0",
+            marginBottom: "12px",
+            cursor: "pointer",
+            color: "#555",
+            fontSize: "15px",
+          }}
+        >
+          ← Home
+        </button>
+
         <div
           style={{
-            textAlign: "center",
-            marginBottom: "30px",
+            background: "white",
+            borderRadius: "24px",
+            padding: "22px",
+            boxShadow: "0 12px 35px rgba(0,0,0,0.07)",
           }}
         >
           <div
             style={{
-              width: "90px",
-              height: "90px",
-              borderRadius: "50%",
-              background: "#dddddd",
-              margin: "0 auto 15px",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              fontSize: "36px",
+              gap: "16px",
+              paddingBottom: "20px",
+              borderBottom: "1px solid #eeeeee",
+              marginBottom: "24px",
             }}
           >
-            👤
-          </div>
-
-          <h1 style={{ marginBottom: "6px" }}>
-            Mario Rossi
-          </h1>
-
-          <p style={{ margin: 0 }}>Barbiere</p>
-        </div>
-
-        {!mostraForm && (
-          <>
-            <h2>Scegli un servizio</h2>
-
             <div
               style={{
+                width: "64px",
+                height: "64px",
+                minWidth: "64px",
+                borderRadius: "18px",
+                background: "#111111",
+                color: "white",
                 display: "flex",
-                flexDirection: "column",
-                gap: "12px",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "28px",
               }}
             >
-              {servizi.map((servizio) => (
-                <button
-                  key={servizio.nome}
-                  onClick={() => {
-                    setServizioSelezionato(servizio);
-                    setGiornoSelezionato(null);
-                    setOrarioSelezionato(null);
-                    setOrari([]);
-                    setOrariOccupati([]);
-                  }}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "18px",
-                    borderRadius: "12px",
-                    border:
-                      servizioSelezionato?.nome ===
-                      servizio.nome
-                        ? "2px solid black"
-                        : "1px solid #dddddd",
-                    background: "white",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: "18px",
-                        fontWeight: "bold",
-                        marginBottom: "5px",
-                      }}
-                    >
-                      {servizio.nome}
-                    </div>
-
-                    <div style={{ fontSize: "14px" }}>
-                      {servizio.durata}
-                    </div>
-                  </div>
-
-                  <strong>{servizio.prezzo}</strong>
-                </button>
-              ))}
+              ✂️
             </div>
 
-            {servizioSelezionato && (
-              <>
-                <h2 style={{ marginTop: "32px" }}>
-                  Scegli un giorno
-                </h2>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(4, 1fr)",
-                    gap: "10px",
-                  }}
-                >
-                  {giorni.map((giorno) => (
-                    <button
-                      key={giorno.valore}
-                      onClick={async () => {
-                        setGiornoSelezionato(giorno);
-                        setOrarioSelezionato(null);
-                        setOrari([]);
-                        setOrariOccupati([]);
-
-                        await Promise.all([
-                          caricaDisponibilita(
-                            giorno.valore
-                          ),
-                          caricaOrariOccupati(
-                            giorno.valore
-                          ),
-                        ]);
-                      }}
-                      style={{
-                        padding: "14px 8px",
-                        borderRadius: "10px",
-                        border:
-                          giornoSelezionato?.valore ===
-                          giorno.valore
-                            ? "2px solid black"
-                            : "1px solid #dddddd",
-                        background: "white",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <strong>{giorno.nome}</strong>
-                      <br />
-                      {giorno.data}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {giornoSelezionato && (
-              <>
-                <h2 style={{ marginTop: "32px" }}>
-                  Scegli un orario
-                </h2>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(3, 1fr)",
-                    gap: "10px",
-                  }}
-                >
-                  {orariDisponibili.length === 0 && (
-                    <p
-                      style={{
-                        gridColumn: "1 / -1",
-                        color: "#666",
-                      }}
-                    >
-                      Nessuna disponibilità per questo
-                      giorno. Scegli un&apos;altra.
-                    </p>
-                  )}
-
-                  {orariDisponibili.map((orario) => (
-                    <button
-                      key={orario}
-                      onClick={() =>
-                        setOrarioSelezionato(orario)
-                      }
-                      style={{
-                        padding: "14px",
-                        borderRadius: "10px",
-                        border:
-                          orarioSelezionato === orario
-                            ? "2px solid black"
-                            : "1px solid #dddddd",
-                        background: "white",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {orario}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {orarioSelezionato && (
-              <div
+            <div>
+              <h1
                 style={{
-                  marginTop: "32px",
-                  padding: "18px",
-                  background: "#f5f5f5",
-                  borderRadius: "12px",
+                  margin: "0 0 4px",
+                  fontSize: "24px",
+                  color: "#111111",
                 }}
               >
-                <strong>Hai scelto:</strong>
+                Mario Rossi
+              </h1>
 
-                <p>
-                  {servizioSelezionato.nome} —{" "}
-                  {giornoSelezionato.data} alle{" "}
-                  {orarioSelezionato}
+              <p
+                style={{
+                  margin: 0,
+                  color: "#777",
+                  fontSize: "15px",
+                }}
+              >
+                Barbiere
+              </p>
+            </div>
+          </div>
+
+          {!mostraForm && (
+            <>
+              <div style={{ marginBottom: "30px" }}>
+                <p
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: "bold",
+                    color: "#888",
+                    margin: "0 0 6px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.6px",
+                  }}
+                >
+                  Passaggio 1
                 </p>
 
-                <button
-                  onClick={() => setMostraForm(true)}
+                <h2
+                  style={{
+                    margin: "0 0 16px",
+                    fontSize: "22px",
+                  }}
+                >
+                  Scegli il servizio
+                </h2>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  {servizi.map((servizio) => {
+                    const selezionato =
+                      servizioSelezionato?.nome === servizio.nome;
+
+                    return (
+                      <button
+                        key={servizio.nome}
+                        type="button"
+                        onClick={() => {
+                          setServizioSelezionato(servizio);
+                          setGiornoSelezionato(null);
+                          setOrarioSelezionato(null);
+                          setOrari([]);
+                          setOrariOccupati([]);
+                        }}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "15px",
+                          padding: "16px",
+                          borderRadius: "16px",
+                          border: selezionato
+                            ? "2px solid #111111"
+                            : "1px solid #e2e2e2",
+                          background: selezionato
+                            ? "#f5f5f5"
+                            : "white",
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              fontSize: "17px",
+                              fontWeight: "bold",
+                              marginBottom: "5px",
+                              color: "#111111",
+                            }}
+                          >
+                            {servizio.nome}
+                          </div>
+
+                          <div
+                            style={{
+                              fontSize: "14px",
+                              color: "#777",
+                            }}
+                          >
+                            {servizio.durata}
+                          </div>
+                        </div>
+
+                        <strong
+                          style={{
+                            fontSize: "16px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {servizio.prezzo}
+                        </strong>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {servizioSelezionato && (
+                <div style={{ marginBottom: "30px" }}>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                      color: "#888",
+                      margin: "0 0 6px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.6px",
+                    }}
+                  >
+                    Passaggio 2
+                  </p>
+
+                  <h2
+                    style={{
+                      margin: "0 0 16px",
+                      fontSize: "22px",
+                    }}
+                  >
+                    Scegli il giorno
+                  </h2>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(92px, 1fr))",
+                      gap: "9px",
+                    }}
+                  >
+                    {giorni.map((giorno) => {
+                      const selezionato =
+                        giornoSelezionato?.valore === giorno.valore;
+
+                      return (
+                        <button
+                          key={giorno.valore}
+                          type="button"
+                          onClick={async () => {
+                            setGiornoSelezionato(giorno);
+                            setOrarioSelezionato(null);
+                            setOrari([]);
+                            setOrariOccupati([]);
+
+                            await Promise.all([
+                              caricaDisponibilita(giorno.valore),
+                              caricaOrariOccupati(giorno.valore),
+                            ]);
+                          }}
+                          style={{
+                            padding: "14px 8px",
+                            borderRadius: "14px",
+                            border: selezionato
+                              ? "2px solid #111111"
+                              : "1px solid #e2e2e2",
+                            background: selezionato
+                              ? "#111111"
+                              : "white",
+                            color: selezionato
+                              ? "white"
+                              : "#111111",
+                            cursor: "pointer",
+                            minHeight: "70px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "13px",
+                              textTransform: "capitalize",
+                              opacity: selezionato ? 0.8 : 0.6,
+                              marginBottom: "5px",
+                            }}
+                          >
+                            {giorno.nome}
+                          </div>
+
+                          <strong>{giorno.data}</strong>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {giornoSelezionato && (
+                <div>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                      color: "#888",
+                      margin: "0 0 6px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.6px",
+                    }}
+                  >
+                    Passaggio 3
+                  </p>
+
+                  <h2
+                    style={{
+                      margin: "0 0 16px",
+                      fontSize: "22px",
+                    }}
+                  >
+                    Scegli un orario
+                  </h2>
+
+                  {orariDisponibili.length === 0 ? (
+                    <div
+                      style={{
+                        background: "#f6f6f7",
+                        borderRadius: "14px",
+                        padding: "18px",
+                        color: "#666",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Nessuna disponibilità per questo giorno.
+                      Scegli un&apos;altra data.
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(3, minmax(0, 1fr))",
+                        gap: "9px",
+                      }}
+                    >
+                      {orariDisponibili.map((orario) => {
+                        const selezionato =
+                          orarioSelezionato === orario;
+
+                        return (
+                          <button
+                            key={orario}
+                            type="button"
+                            onClick={() =>
+                              setOrarioSelezionato(orario)
+                            }
+                            style={{
+                              padding: "14px 8px",
+                              borderRadius: "12px",
+                              border: selezionato
+                                ? "2px solid #111111"
+                                : "1px solid #e1e1e1",
+                              background: selezionato
+                                ? "#111111"
+                                : "white",
+                              color: selezionato
+                                ? "white"
+                                : "#111111",
+                              fontWeight: "bold",
+                              fontSize: "15px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {orario}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {orarioSelezionato && (
+                <div
+                  style={{
+                    marginTop: "26px",
+                    padding: "18px",
+                    background: "#f6f6f7",
+                    borderRadius: "16px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      color: "#777",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Il tuo appuntamento
+                  </div>
+
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      lineHeight: 1.5,
+                      marginBottom: "16px",
+                    }}
+                  >
+                    {servizioSelezionato.nome}
+                    <br />
+                    {giornoSelezionato.data} alle {orarioSelezionato}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setMostraForm(true)}
+                    style={{
+                      width: "100%",
+                      padding: "16px",
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      borderRadius: "14px",
+                      border: "none",
+                      background: "#111111",
+                      color: "white",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Continua
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {mostraForm && (
+            <>
+              <button
+                type="button"
+                onClick={() => setMostraForm(false)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  padding: "4px 0",
+                  marginBottom: "18px",
+                  color: "#555",
+                  fontSize: "15px",
+                }}
+              >
+                ← Indietro
+              </button>
+
+              <p
+                style={{
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                  color: "#888",
+                  margin: "0 0 6px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.6px",
+                }}
+              >
+                Ultimo passaggio
+              </p>
+
+              <h2
+                style={{
+                  margin: "0 0 8px",
+                  fontSize: "24px",
+                }}
+              >
+                I tuoi dati
+              </h2>
+
+              <p
+                style={{
+                  color: "#666",
+                  lineHeight: 1.5,
+                  marginTop: 0,
+                  marginBottom: "24px",
+                }}
+              >
+                {servizioSelezionato.nome} ·{" "}
+                {giornoSelezionato.data} · {orarioSelezionato}
+              </p>
+
+              <form onSubmit={confermaPrenotazione}>
+                <label
+                  style={{
+                    display: "block",
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                  }}
+                >
+                  Nome e cognome
+                </label>
+
+                <input
+                  type="text"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder="Mario Bianchi"
                   style={{
                     width: "100%",
                     padding: "15px",
+                    marginTop: "7px",
+                    marginBottom: "18px",
+                    borderRadius: "12px",
+                    border: "1px solid #d8d8d8",
                     fontSize: "16px",
+                    background: "white",
+                  }}
+                />
+
+                <label
+                  style={{
+                    display: "block",
                     fontWeight: "bold",
-                    borderRadius: "10px",
+                    fontSize: "14px",
+                  }}
+                >
+                  Telefono
+                </label>
+
+                <input
+                  type="tel"
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  placeholder="333 1234567"
+                  style={{
+                    width: "100%",
+                    padding: "15px",
+                    marginTop: "7px",
+                    marginBottom: "18px",
+                    borderRadius: "12px",
+                    border: "1px solid #d8d8d8",
+                    fontSize: "16px",
+                    background: "white",
+                  }}
+                />
+
+                <label
+                  style={{
+                    display: "block",
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                  }}
+                >
+                  Email
+                </label>
+
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="mario@email.it"
+                  style={{
+                    width: "100%",
+                    padding: "15px",
+                    marginTop: "7px",
+                    marginBottom: "24px",
+                    borderRadius: "12px",
+                    border: "1px solid #d8d8d8",
+                    fontSize: "16px",
+                    background: "white",
+                  }}
+                />
+
+                <button
+                  type="submit"
+                  style={{
+                    width: "100%",
+                    padding: "17px",
+                    fontSize: "17px",
+                    fontWeight: "bold",
+                    borderRadius: "14px",
                     border: "none",
+                    background: "#111111",
+                    color: "white",
                     cursor: "pointer",
                   }}
                 >
-                  Continua
+                  Conferma prenotazione
                 </button>
-              </div>
-            )}
-          </>
-        )}
+              </form>
+            </>
+          )}
+        </div>
 
-        {mostraForm && (
-          <>
-            <button
-              onClick={() => setMostraForm(false)}
-              style={{
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                padding: 0,
-                marginBottom: "20px",
-              }}
-            >
-              ← Indietro
-            </button>
-
-            <h2>I tuoi dati</h2>
-
-            <p>
-              {servizioSelezionato.nome} —{" "}
-              {giornoSelezionato.data} alle{" "}
-              {orarioSelezionato}
-            </p>
-
-            <form onSubmit={confermaPrenotazione}>
-              <label>Nome e cognome</label>
-
-              <input
-                type="text"
-                value={nome}
-                onChange={(e) =>
-                  setNome(e.target.value)
-                }
-                placeholder="Mario Bianchi"
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  padding: "14px",
-                  marginTop: "7px",
-                  marginBottom: "18px",
-                  borderRadius: "10px",
-                  border: "1px solid #cccccc",
-                  fontSize: "16px",
-                }}
-              />
-
-              <label>Telefono</label>
-
-              <input
-                type="tel"
-                value={telefono}
-                onChange={(e) =>
-                  setTelefono(e.target.value)
-                }
-                placeholder="333 1234567"
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  padding: "14px",
-                  marginTop: "7px",
-                  marginBottom: "18px",
-                  borderRadius: "10px",
-                  border: "1px solid #cccccc",
-                  fontSize: "16px",
-                }}
-              />
-
-              <label>Email</label>
-
-              <input
-                type="email"
-                value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
-                placeholder="mario@email.it"
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  padding: "14px",
-                  marginTop: "7px",
-                  marginBottom: "24px",
-                  borderRadius: "10px",
-                  border: "1px solid #cccccc",
-                  fontSize: "16px",
-                }}
-              />
-
-              <button
-                type="submit"
-                style={{
-                  width: "100%",
-                  padding: "16px",
-                  fontSize: "17px",
-                  fontWeight: "bold",
-                  borderRadius: "10px",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                Conferma prenotazione
-              </button>
-            </form>
-          </>
-        )}
+        <p
+          style={{
+            textAlign: "center",
+            color: "#888",
+            fontSize: "12px",
+            marginTop: "18px",
+          }}
+        >
+          Prenotazione senza registrazione
+        </p>
       </div>
     </main>
   );
