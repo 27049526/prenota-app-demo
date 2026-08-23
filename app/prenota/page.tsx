@@ -1,14 +1,85 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
-export default function Home() {
-  const servizi = [
-    { nome: "Taglio", durata: "30 min", prezzo: "25 €" },
-    { nome: "Barba", durata: "20 min", prezzo: "15 €" },
-    { nome: "Taglio + Barba", durata: "50 min", prezzo: "35 €" },
-  ];
+export default function PrenotaPage() {
+  const [profilo, setProfilo] = useState<any>(null);
+  const [servizi, setServizi] = useState<any[]>([]);
+  const [caricamentoPagina, setCaricamentoPagina] = useState(true);
+
+  const [servizioSelezionato, setServizioSelezionato] =
+    useState<any>(null);
+
+  const [giornoSelezionato, setGiornoSelezionato] =
+    useState<any>(null);
+
+  const [orarioSelezionato, setOrarioSelezionato] =
+    useState<string | null>(null);
+
+  const [mostraForm, setMostraForm] = useState(false);
+  const [prenotazioneConfermata, setPrenotazioneConfermata] =
+    useState(false);
+
+  const [nome, setNome] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [email, setEmail] = useState("");
+
+  const [orariOccupati, setOrariOccupati] = useState<string[]>([]);
+  const [orari, setOrari] = useState<string[]>([]);
+
+  useEffect(() => {
+    inizializzaPagina();
+  }, []);
+
+  async function inizializzaPagina() {
+    setCaricamentoPagina(true);
+
+    const [
+      risultatoProfilo,
+      risultatoServizi,
+    ] = await Promise.all([
+      supabase
+        .from("professional_profile")
+        .select("*")
+        .order("id", { ascending: true })
+        .limit(1),
+
+      supabase
+        .from("services")
+        .select("*")
+        .eq("is_active", true)
+        .order("id", { ascending: true }),
+    ]);
+
+    if (risultatoProfilo.error) {
+      console.error(risultatoProfilo.error);
+      alert(
+        "Errore nel caricamento del profilo: " +
+          risultatoProfilo.error.message
+      );
+    } else {
+      const profiloCaricato =
+        risultatoProfilo.data &&
+        risultatoProfilo.data.length > 0
+          ? risultatoProfilo.data[0]
+          : null;
+
+      setProfilo(profiloCaricato);
+    }
+
+    if (risultatoServizi.error) {
+      console.error(risultatoServizi.error);
+      alert(
+        "Errore nel caricamento dei servizi: " +
+          risultatoServizi.error.message
+      );
+    } else {
+      setServizi(risultatoServizi.data || []);
+    }
+
+    setCaricamentoPagina(false);
+  }
 
   const giorni = Array.from({ length: 7 }, (_, i) => {
     const data = new Date();
@@ -31,10 +102,15 @@ export default function Home() {
     fine: string,
     intervalloMinuti = 30
   ) {
-    const orari: string[] = [];
+    const orariGenerati: string[] = [];
 
-    const [oraInizio, minutiInizio] = inizio.split(":").map(Number);
-    const [oraFine, minutiFine] = fine.split(":").map(Number);
+    const [oraInizio, minutiInizio] = inizio
+      .split(":")
+      .map(Number);
+
+    const [oraFine, minutiFine] = fine
+      .split(":")
+      .map(Number);
 
     let minutiTotali = oraInizio * 60 + minutiInizio;
     const minutiFinali = oraFine * 60 + minutiFine;
@@ -47,36 +123,17 @@ export default function Home() {
         `${String(ore).padStart(2, "0")}:` +
         `${String(minuti).padStart(2, "0")}`;
 
-      orari.push(orario);
+      orariGenerati.push(orario);
 
       minutiTotali += intervalloMinuti;
     }
 
-    return orari;
+    return orariGenerati;
   }
 
-  const [servizioSelezionato, setServizioSelezionato] =
-    useState<any>(null);
-
-  const [giornoSelezionato, setGiornoSelezionato] =
-    useState<any>(null);
-
-  const [orarioSelezionato, setOrarioSelezionato] =
-    useState<string | null>(null);
-
-  const [mostraForm, setMostraForm] = useState(false);
-
-  const [prenotazioneConfermata, setPrenotazioneConfermata] =
-    useState(false);
-
-  const [nome, setNome] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [email, setEmail] = useState("");
-
-  const [orariOccupati, setOrariOccupati] = useState<string[]>([]);
-  const [orari, setOrari] = useState<string[]>([]);
-
-  async function caricaDisponibilita(giornoValore: string) {
+  async function caricaDisponibilita(
+    giornoValore: string
+  ) {
     const {
       data: chiusura,
       error: erroreChiusura,
@@ -88,12 +145,10 @@ export default function Home() {
 
     if (erroreChiusura) {
       console.error(erroreChiusura);
-
       alert(
         "Errore nel controllo delle chiusure: " +
           erroreChiusura.message
       );
-
       setOrari([]);
       return;
     }
@@ -103,7 +158,10 @@ export default function Home() {
       return;
     }
 
-    const data = new Date(giornoValore + "T12:00:00");
+    const data = new Date(
+      giornoValore + "T12:00:00"
+    );
+
     const giornoSettimana = data.getDay();
 
     const {
@@ -111,19 +169,19 @@ export default function Home() {
       error,
     } = await supabase
       .from("availability")
-      .select("start_time, end_time, is_active, day_enabled")
+      .select(
+        "start_time, end_time, is_active, day_enabled"
+      )
       .eq("day_of_week", giornoSettimana)
       .eq("is_active", true)
       .eq("day_enabled", true);
 
     if (error) {
       console.error(error);
-
       alert(
         "Errore nel caricamento della disponibilità: " +
           error.message
       );
-
       setOrari([]);
       return;
     }
@@ -139,12 +197,15 @@ export default function Home() {
       nuoviOrari.push(...orariFascia);
     });
 
-    const orariUnici = Array.from(new Set(nuoviOrari)).sort();
+    const orariUnici =
+      Array.from(new Set(nuoviOrari)).sort();
 
     setOrari(orariUnici);
   }
 
-  async function caricaOrariOccupati(data: string) {
+  async function caricaOrariOccupati(
+    data: string
+  ) {
     const {
       data: prenotazioni,
       error,
@@ -156,17 +217,16 @@ export default function Home() {
 
     if (error) {
       console.error(error);
-
       alert(
         "Errore nel caricamento degli orari: " +
           error.message
       );
-
       return;
     }
 
     const occupati = (prenotazioni || []).map(
-      (prenotazione: any) => prenotazione.booking_time
+      (prenotazione: any) =>
+        prenotazione.booking_time
     );
 
     setOrariOccupati(occupati);
@@ -182,6 +242,23 @@ export default function Home() {
       return;
     }
 
+    if (
+      !servizioSelezionato ||
+      !giornoSelezionato ||
+      !orarioSelezionato
+    ) {
+      alert(
+        "Seleziona servizio, giorno e orario."
+      );
+      return;
+    }
+
+    const durataTesto =
+      `${servizioSelezionato.duration_minutes} min`;
+
+    const prezzoTesto =
+      `${Number(servizioSelezionato.price).toFixed(2)} €`;
+
     const { error } = await supabase
       .from("bookings")
       .insert([
@@ -189,9 +266,9 @@ export default function Home() {
           customer_name: nome,
           customer_phone: telefono,
           customer_email: email,
-          service_name: servizioSelezionato.nome,
-          service_duration: servizioSelezionato.durata,
-          service_price: servizioSelezionato.prezzo,
+          service_name: servizioSelezionato.name,
+          service_duration: durataTesto,
+          service_price: prezzoTesto,
           booking_date: giornoSelezionato.valore,
           booking_time: orarioSelezionato,
           status: "confirmed",
@@ -206,7 +283,9 @@ export default function Home() {
           "Questo orario è appena stato prenotato da un altro cliente. Scegli un altro orario."
         );
       } else {
-        alert("Errore salvataggio: " + error.message);
+        alert(
+          "Errore salvataggio: " + error.message
+        );
       }
 
       return;
@@ -215,9 +294,41 @@ export default function Home() {
     setPrenotazioneConfermata(true);
   }
 
+  function prezzoFormattato(prezzo: any) {
+    return `${Number(prezzo).toFixed(2)} €`;
+  }
+
   const orariDisponibili = orari.filter(
-    (orario) => !orariOccupati.includes(orario)
+    (orario) =>
+      !orariOccupati.includes(orario)
   );
+
+  if (caricamentoPagina) {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background:
+            "linear-gradient(180deg, #f7f7f8 0%, #eeeeef 100%)",
+          fontFamily: "Arial, sans-serif",
+        }}
+      >
+        <div
+          style={{
+            background: "white",
+            padding: "20px 24px",
+            borderRadius: "16px",
+            color: "#666",
+          }}
+        >
+          Caricamento...
+        </div>
+      </main>
+    );
+  }
 
   if (prenotazioneConfermata) {
     return (
@@ -241,7 +352,8 @@ export default function Home() {
             padding: "28px",
             borderRadius: "24px",
             textAlign: "center",
-            boxShadow: "0 12px 35px rgba(0,0,0,0.08)",
+            boxShadow:
+              "0 12px 35px rgba(0,0,0,0.08)",
           }}
         >
           <div
@@ -265,7 +377,6 @@ export default function Home() {
             style={{
               margin: "0 0 10px",
               fontSize: "28px",
-              color: "#111111",
             }}
           >
             Prenotazione confermata
@@ -278,8 +389,8 @@ export default function Home() {
               marginBottom: "24px",
             }}
           >
-            Ciao <strong>{nome}</strong>, il tuo appuntamento è
-            confermato.
+            Ciao <strong>{nome}</strong>, il tuo
+            appuntamento è confermato.
           </p>
 
           <div
@@ -291,12 +402,13 @@ export default function Home() {
             }}
           >
             <p>
-              <strong>Professionista:</strong> Mario Rossi
+              <strong>Professionista:</strong>{" "}
+              {profilo?.name || "Professionista"}
             </p>
 
             <p>
               <strong>Servizio:</strong>{" "}
-              {servizioSelezionato.nome}
+              {servizioSelezionato.name}
             </p>
 
             <p>
@@ -305,23 +417,28 @@ export default function Home() {
             </p>
 
             <p>
-              <strong>Ora:</strong> {orarioSelezionato}
+              <strong>Ora:</strong>{" "}
+              {orarioSelezionato}
             </p>
 
             <p>
               <strong>Durata:</strong>{" "}
-              {servizioSelezionato.durata}
+              {servizioSelezionato.duration_minutes} min
             </p>
 
             <p style={{ marginBottom: 0 }}>
               <strong>Prezzo:</strong>{" "}
-              {servizioSelezionato.prezzo}
+              {prezzoFormattato(
+                servizioSelezionato.price
+              )}
             </p>
           </div>
 
           <button
             type="button"
-            onClick={() => (window.location.href = "/")}
+            onClick={() =>
+              (window.location.href = "/")
+            }
             style={{
               width: "100%",
               marginTop: "22px",
@@ -361,7 +478,9 @@ export default function Home() {
       >
         <button
           type="button"
-          onClick={() => (window.location.href = "/")}
+          onClick={() =>
+            (window.location.href = "/")
+          }
           style={{
             border: "none",
             background: "transparent",
@@ -380,7 +499,8 @@ export default function Home() {
             background: "white",
             borderRadius: "24px",
             padding: "22px",
-            boxShadow: "0 12px 35px rgba(0,0,0,0.07)",
+            boxShadow:
+              "0 12px 35px rgba(0,0,0,0.07)",
           }}
         >
           <div
@@ -415,10 +535,9 @@ export default function Home() {
                 style={{
                   margin: "0 0 4px",
                   fontSize: "24px",
-                  color: "#111111",
                 }}
               >
-                Mario Rossi
+                {profilo?.name || "Professionista"}
               </h1>
 
               <p
@@ -428,35 +547,43 @@ export default function Home() {
                   fontSize: "15px",
                 }}
               >
-                Barbiere
+                {profilo?.profession || ""}
               </p>
             </div>
           </div>
 
+          {profilo?.description && (
+            <div
+              style={{
+                background: "#f6f6f7",
+                padding: "14px",
+                borderRadius: "14px",
+                marginBottom: "24px",
+                color: "#666",
+                fontSize: "14px",
+                lineHeight: 1.5,
+              }}
+            >
+              {profilo.description}
+            </div>
+          )}
+
           {!mostraForm && (
             <>
               <div style={{ marginBottom: "30px" }}>
-                <p
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "bold",
-                    color: "#888",
-                    margin: "0 0 6px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.6px",
-                  }}
-                >
+                <p style={stepStyle}>
                   Passaggio 1
                 </p>
 
-                <h2
-                  style={{
-                    margin: "0 0 16px",
-                    fontSize: "22px",
-                  }}
-                >
+                <h2 style={titleStyle}>
                   Scegli il servizio
                 </h2>
+
+                {servizi.length === 0 && (
+                  <div style={emptyStyle}>
+                    Nessun servizio disponibile.
+                  </div>
+                )}
 
                 <div
                   style={{
@@ -467,11 +594,12 @@ export default function Home() {
                 >
                   {servizi.map((servizio) => {
                     const selezionato =
-                      servizioSelezionato?.nome === servizio.nome;
+                      servizioSelezionato?.id ===
+                      servizio.id;
 
                     return (
                       <button
-                        key={servizio.nome}
+                        key={servizio.id}
                         type="button"
                         onClick={() => {
                           setServizioSelezionato(servizio);
@@ -503,10 +631,9 @@ export default function Home() {
                               fontSize: "17px",
                               fontWeight: "bold",
                               marginBottom: "5px",
-                              color: "#111111",
                             }}
                           >
-                            {servizio.nome}
+                            {servizio.name}
                           </div>
 
                           <div
@@ -515,17 +642,14 @@ export default function Home() {
                               color: "#777",
                             }}
                           >
-                            {servizio.durata}
+                            {servizio.duration_minutes} min
                           </div>
                         </div>
 
-                        <strong
-                          style={{
-                            fontSize: "16px",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {servizio.prezzo}
+                        <strong>
+                          {prezzoFormattato(
+                            servizio.price
+                          )}
                         </strong>
                       </button>
                     );
@@ -535,25 +659,11 @@ export default function Home() {
 
               {servizioSelezionato && (
                 <div style={{ marginBottom: "30px" }}>
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: "bold",
-                      color: "#888",
-                      margin: "0 0 6px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.6px",
-                    }}
-                  >
+                  <p style={stepStyle}>
                     Passaggio 2
                   </p>
 
-                  <h2
-                    style={{
-                      margin: "0 0 16px",
-                      fontSize: "22px",
-                    }}
-                  >
+                  <h2 style={titleStyle}>
                     Scegli il giorno
                   </h2>
 
@@ -567,7 +677,8 @@ export default function Home() {
                   >
                     {giorni.map((giorno) => {
                       const selezionato =
-                        giornoSelezionato?.valore === giorno.valore;
+                        giornoSelezionato?.valore ===
+                        giorno.valore;
 
                       return (
                         <button
@@ -580,8 +691,12 @@ export default function Home() {
                             setOrariOccupati([]);
 
                             await Promise.all([
-                              caricaDisponibilita(giorno.valore),
-                              caricaOrariOccupati(giorno.valore),
+                              caricaDisponibilita(
+                                giorno.valore
+                              ),
+                              caricaOrariOccupati(
+                                giorno.valore
+                              ),
                             ]);
                           }}
                           style={{
@@ -604,14 +719,18 @@ export default function Home() {
                             style={{
                               fontSize: "13px",
                               textTransform: "capitalize",
-                              opacity: selezionato ? 0.8 : 0.6,
+                              opacity: selezionato
+                                ? 0.8
+                                : 0.6,
                               marginBottom: "5px",
                             }}
                           >
                             {giorno.nome}
                           </div>
 
-                          <strong>{giorno.data}</strong>
+                          <strong>
+                            {giorno.data}
+                          </strong>
                         </button>
                       );
                     })}
@@ -621,40 +740,18 @@ export default function Home() {
 
               {giornoSelezionato && (
                 <div>
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: "bold",
-                      color: "#888",
-                      margin: "0 0 6px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.6px",
-                    }}
-                  >
+                  <p style={stepStyle}>
                     Passaggio 3
                   </p>
 
-                  <h2
-                    style={{
-                      margin: "0 0 16px",
-                      fontSize: "22px",
-                    }}
-                  >
+                  <h2 style={titleStyle}>
                     Scegli un orario
                   </h2>
 
                   {orariDisponibili.length === 0 ? (
-                    <div
-                      style={{
-                        background: "#f6f6f7",
-                        borderRadius: "14px",
-                        padding: "18px",
-                        color: "#666",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      Nessuna disponibilità per questo giorno.
-                      Scegli un&apos;altra data.
+                    <div style={emptyStyle}>
+                      Nessuna disponibilità per questo
+                      giorno. Scegli un&apos;altra data.
                     </div>
                   ) : (
                     <div
@@ -728,25 +825,16 @@ export default function Home() {
                       marginBottom: "16px",
                     }}
                   >
-                    {servizioSelezionato.nome}
+                    {servizioSelezionato.name}
                     <br />
-                    {giornoSelezionato.data} alle {orarioSelezionato}
+                    {giornoSelezionato.data} alle{" "}
+                    {orarioSelezionato}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setMostraForm(true)}
-                    style={{
-                      width: "100%",
-                      padding: "16px",
-                      fontSize: "16px",
-                      fontWeight: "bold",
-                      borderRadius: "14px",
-                      border: "none",
-                      background: "#111111",
-                      color: "white",
-                      cursor: "pointer",
-                    }}
+                    style={primaryButton}
                   >
                     Continua
                   </button>
@@ -773,25 +861,11 @@ export default function Home() {
                 ← Indietro
               </button>
 
-              <p
-                style={{
-                  fontSize: "13px",
-                  fontWeight: "bold",
-                  color: "#888",
-                  margin: "0 0 6px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.6px",
-                }}
-              >
+              <p style={stepStyle}>
                 Ultimo passaggio
               </p>
 
-              <h2
-                style={{
-                  margin: "0 0 8px",
-                  fontSize: "24px",
-                }}
-              >
+              <h2 style={titleStyle}>
                 I tuoi dati
               </h2>
 
@@ -803,105 +877,60 @@ export default function Home() {
                   marginBottom: "24px",
                 }}
               >
-                {servizioSelezionato.nome} ·{" "}
-                {giornoSelezionato.data} · {orarioSelezionato}
+                {servizioSelezionato.name} ·{" "}
+                {giornoSelezionato.data} ·{" "}
+                {orarioSelezionato}
               </p>
 
               <form onSubmit={confermaPrenotazione}>
-                <label
-                  style={{
-                    display: "block",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                  }}
-                >
+                <label style={labelStyle}>
                   Nome e cognome
                 </label>
 
                 <input
                   type="text"
                   value={nome}
-                  onChange={(e) => setNome(e.target.value)}
+                  onChange={(e) =>
+                    setNome(e.target.value)
+                  }
                   placeholder="Mario Bianchi"
-                  style={{
-                    width: "100%",
-                    padding: "15px",
-                    marginTop: "7px",
-                    marginBottom: "18px",
-                    borderRadius: "12px",
-                    border: "1px solid #d8d8d8",
-                    fontSize: "16px",
-                    background: "white",
-                  }}
+                  style={formInputStyle}
                 />
 
-                <label
-                  style={{
-                    display: "block",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                  }}
-                >
+                <label style={labelStyle}>
                   Telefono
                 </label>
 
                 <input
                   type="tel"
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
+                  onChange={(e) =>
+                    setTelefono(e.target.value)
+                  }
                   placeholder="333 1234567"
-                  style={{
-                    width: "100%",
-                    padding: "15px",
-                    marginTop: "7px",
-                    marginBottom: "18px",
-                    borderRadius: "12px",
-                    border: "1px solid #d8d8d8",
-                    fontSize: "16px",
-                    background: "white",
-                  }}
+                  style={formInputStyle}
                 />
 
-                <label
-                  style={{
-                    display: "block",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                  }}
-                >
+                <label style={labelStyle}>
                   Email
                 </label>
 
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) =>
+                    setEmail(e.target.value)
+                  }
                   placeholder="mario@email.it"
                   style={{
-                    width: "100%",
-                    padding: "15px",
-                    marginTop: "7px",
+                    ...formInputStyle,
                     marginBottom: "24px",
-                    borderRadius: "12px",
-                    border: "1px solid #d8d8d8",
-                    fontSize: "16px",
-                    background: "white",
                   }}
                 />
 
                 <button
                   type="submit"
-                  style={{
-                    width: "100%",
-                    padding: "17px",
-                    fontSize: "17px",
-                    fontWeight: "bold",
-                    borderRadius: "14px",
-                    border: "none",
-                    background: "#111111",
-                    color: "white",
-                    cursor: "pointer",
-                  }}
+                  style={primaryButton}
                 >
                   Conferma prenotazione
                 </button>
@@ -909,18 +938,60 @@ export default function Home() {
             </>
           )}
         </div>
-
-        <p
-          style={{
-            textAlign: "center",
-            color: "#888",
-            fontSize: "12px",
-            marginTop: "18px",
-          }}
-        >
-          Prenotazione senza registrazione
-        </p>
       </div>
     </main>
   );
 }
+
+const stepStyle: React.CSSProperties = {
+  fontSize: "13px",
+  fontWeight: "bold",
+  color: "#888",
+  margin: "0 0 6px",
+  textTransform: "uppercase",
+  letterSpacing: "0.6px",
+};
+
+const titleStyle: React.CSSProperties = {
+  margin: "0 0 16px",
+  fontSize: "22px",
+};
+
+const emptyStyle: React.CSSProperties = {
+  background: "#f6f6f7",
+  padding: "18px",
+  borderRadius: "14px",
+  color: "#666",
+  lineHeight: 1.5,
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontWeight: "bold",
+  fontSize: "14px",
+};
+
+const formInputStyle: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "15px",
+  marginTop: "7px",
+  marginBottom: "18px",
+  borderRadius: "12px",
+  border: "1px solid #d8d8d8",
+  fontSize: "16px",
+  background: "white",
+  color: "#111111",
+};
+
+const primaryButton: React.CSSProperties = {
+  width: "100%",
+  padding: "16px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  borderRadius: "14px",
+  border: "none",
+  background: "#111111",
+  color: "white",
+  cursor: "pointer",
+};
