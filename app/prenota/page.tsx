@@ -150,7 +150,7 @@ export default function Home() {
       nuoviOrari.push(...orariFascia);
     });
 
-    const orariUnici = [...new Set(nuoviOrari)].sort();
+    const orariUnici = Array.from(new Set(nuoviOrari)).sort();
 
     setOrari(orariUnici);
   }
