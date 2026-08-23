@@ -482,7 +482,7 @@ export default function Home() {
                       }}
                     >
                       Nessuna disponibilità per questo
-                      giorno. Scegli un'altra data.
+                      giorno. Scegli un&apos;altra.
                     </p>
                   )}
 
