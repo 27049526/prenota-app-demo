@@ -353,10 +353,22 @@ export default function AdminPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          background:
+            "linear-gradient(180deg, #f7f7f8 0%, #eeeeef 100%)",
           fontFamily: "Arial, sans-serif",
         }}
       >
-        Controllo accesso...
+        <div
+          style={{
+            background: "white",
+            padding: "20px 24px",
+            borderRadius: "16px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+            color: "#666",
+          }}
+        >
+          Controllo accesso...
+        </div>
       </main>
     );
   }
@@ -365,57 +377,375 @@ export default function AdminPage() {
     <main
       style={{
         minHeight: "100vh",
-        background: "#f5f5f5",
+        background:
+          "linear-gradient(180deg, #f7f7f8 0%, #eeeeef 100%)",
         fontFamily: "Arial, sans-serif",
-        padding: "30px 16px",
+        padding: "18px 14px 50px",
+        color: "#111111",
       }}
     >
       <div
         style={{
+          width: "100%",
           maxWidth: "900px",
           margin: "0 auto",
         }}
       >
+        {/* INTESTAZIONE */}
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "20px",
-            marginBottom: "35px",
+            background: "#111111",
+            color: "white",
+            padding: "22px",
+            borderRadius: "24px",
+            marginBottom: "18px",
+            boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
           }}
         >
-          <div>
-            <h1 style={{ marginBottom: "5px" }}>
-              Area professionista
-            </h1>
-
-            <p style={{ margin: 0 }}>
-              Gestisci prenotazioni e disponibilità.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={esci}
+          <div
             style={{
-              padding: "10px 18px",
-              cursor: "pointer",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "15px",
+              flexWrap: "wrap",
             }}
           >
-            Esci
-          </button>
+            <div>
+              <div
+                style={{
+                  fontSize: "13px",
+                  opacity: 0.7,
+                  marginBottom: "5px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.7px",
+                }}
+              >
+                Dashboard
+              </div>
+
+              <h1
+                style={{
+                  margin: "0 0 6px",
+                  fontSize: "28px",
+                  color: "white",
+                }}
+              >
+                Area professionista
+              </h1>
+
+              <p
+                style={{
+                  margin: 0,
+                  opacity: 0.75,
+                  fontSize: "14px",
+                }}
+              >
+                Gestisci appuntamenti e disponibilità.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={esci}
+              style={{
+                padding: "11px 17px",
+                borderRadius: "12px",
+                border: "1px solid rgba(255,255,255,0.25)",
+                background: "rgba(255,255,255,0.1)",
+                color: "white",
+                cursor: "pointer",
+                fontWeight: "bold",
+              }}
+            >
+              Esci
+            </button>
+          </div>
         </div>
 
+        {/* RIEPILOGO */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: "10px",
+            marginBottom: "28px",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "18px",
+              borderRadius: "18px",
+              boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div
+              style={{
+                color: "#777",
+                fontSize: "13px",
+                marginBottom: "5px",
+              }}
+            >
+              Oggi
+            </div>
+
+            <div
+              style={{
+                fontSize: "30px",
+                fontWeight: "bold",
+              }}
+            >
+              {appuntamentiOggi.length}
+            </div>
+
+            <div
+              style={{
+                color: "#777",
+                fontSize: "13px",
+              }}
+            >
+              appuntamenti
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "white",
+              padding: "18px",
+              borderRadius: "18px",
+              boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div
+              style={{
+                color: "#777",
+                fontSize: "13px",
+                marginBottom: "5px",
+              }}
+            >
+              In programma
+            </div>
+
+            <div
+              style={{
+                fontSize: "30px",
+                fontWeight: "bold",
+              }}
+            >
+              {prossimiAppuntamenti.length}
+            </div>
+
+            <div
+              style={{
+                color: "#777",
+                fontSize: "13px",
+              }}
+            >
+              prossimi
+            </div>
+          </div>
+        </div>
+
+        {/* APPUNTAMENTI DI OGGI */}
+        <section
+          style={{
+            marginBottom: "32px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "10px",
+              marginBottom: "14px",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: "#888",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.7px",
+                  marginBottom: "4px",
+                }}
+              >
+                Agenda
+              </div>
+
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "22px",
+                }}
+              >
+                Appuntamenti di oggi
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              onClick={caricaPrenotazioni}
+              style={{
+                padding: "10px 13px",
+                borderRadius: "11px",
+                border: "1px solid #ddd",
+                background: "white",
+                cursor: "pointer",
+                fontWeight: "bold",
+              }}
+            >
+              Aggiorna
+            </button>
+          </div>
+
+          {caricamento && (
+            <div
+              style={{
+                background: "white",
+                padding: "18px",
+                borderRadius: "16px",
+              }}
+            >
+              Caricamento...
+            </div>
+          )}
+
+          {!caricamento && appuntamentiOggi.length === 0 && (
+            <div
+              style={{
+                background: "white",
+                padding: "20px",
+                borderRadius: "18px",
+                color: "#666",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.04)",
+              }}
+            >
+              Nessun appuntamento per oggi.
+            </div>
+          )}
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            {appuntamentiOggi.map((prenotazione) => (
+              <SchedaPrenotazione
+                key={prenotazione.id}
+                prenotazione={prenotazione}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* PROSSIMI APPUNTAMENTI */}
+        <section
+          style={{
+            marginBottom: "38px",
+          }}
+        >
+          <div
+            style={{
+              color: "#888",
+              fontSize: "12px",
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              letterSpacing: "0.7px",
+              marginBottom: "4px",
+            }}
+          >
+            Agenda
+          </div>
+
+          <h2
+            style={{
+              margin: "0 0 14px",
+              fontSize: "22px",
+            }}
+          >
+            Prossimi appuntamenti
+          </h2>
+
+          {prossimiAppuntamenti.length === 0 && (
+            <div
+              style={{
+                background: "white",
+                padding: "20px",
+                borderRadius: "18px",
+                color: "#666",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.04)",
+              }}
+            >
+              Nessun prossimo appuntamento.
+            </div>
+          )}
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            {prossimiAppuntamenti.map((prenotazione) => (
+              <SchedaPrenotazione
+                key={prenotazione.id}
+                prenotazione={prenotazione}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* ORARI DI LAVORO */}
         <section
           style={{
             background: "white",
-            padding: "24px",
-            borderRadius: "16px",
-            marginBottom: "40px",
+            padding: "22px",
+            borderRadius: "24px",
+            marginBottom: "20px",
+            boxShadow: "0 8px 25px rgba(0,0,0,0.05)",
           }}
         >
-          <h2>Orari di lavoro</h2>
+          <div
+            style={{
+              color: "#888",
+              fontSize: "12px",
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              letterSpacing: "0.7px",
+              marginBottom: "4px",
+            }}
+          >
+            Disponibilità
+          </div>
+
+          <h2
+            style={{
+              margin: "0 0 6px",
+              fontSize: "22px",
+            }}
+          >
+            Orari di lavoro
+          </h2>
+
+          <p
+            style={{
+              margin: "0 0 20px",
+              color: "#666",
+              lineHeight: 1.5,
+              fontSize: "14px",
+            }}
+          >
+            Imposta i giorni e le fasce orarie in cui i clienti
+            possono prenotare.
+          </p>
 
           {giorni.map((giorno) => {
             const fasce = disponibilita.filter(
@@ -432,8 +762,8 @@ export default function AdminPage() {
               <div
                 key={giorno.numero}
                 style={{
-                  padding: "20px 0",
-                  borderBottom: "1px solid #eee",
+                  padding: "18px 0",
+                  borderBottom: "1px solid #eeeeee",
                 }}
               >
                 <div
@@ -441,17 +771,38 @@ export default function AdminPage() {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    gap: "15px",
+                    gap: "12px",
                     flexWrap: "wrap",
-                    marginBottom: "15px",
+                    marginBottom: aperto ? "15px" : "0",
                   }}
                 >
-                  <strong>{giorno.nome}</strong>
+                  <div>
+                    <strong
+                      style={{
+                        fontSize: "17px",
+                      }}
+                    >
+                      {giorno.nome}
+                    </strong>
+
+                    <div
+                      style={{
+                        marginTop: "4px",
+                        fontSize: "13px",
+                        color: aperto ? "#555" : "#999",
+                      }}
+                    >
+                      {aperto
+                        ? "Disponibile per le prenotazioni"
+                        : "Giorno chiuso"}
+                    </div>
+                  </div>
 
                   <div
                     style={{
                       display: "flex",
-                      gap: "10px",
+                      gap: "8px",
+                      flexWrap: "wrap",
                     }}
                   >
                     <button
@@ -463,6 +814,21 @@ export default function AdminPage() {
                           fasce
                         )
                       }
+                      style={{
+                        padding: "10px 13px",
+                        borderRadius: "11px",
+                        border: aperto
+                          ? "1px solid #111111"
+                          : "1px solid #dddddd",
+                        background: aperto
+                          ? "#111111"
+                          : "#f4f4f4",
+                        color: aperto
+                          ? "white"
+                          : "#555",
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                      }}
                     >
                       {aperto ? "Aperto" : "Chiuso"}
                     </button>
@@ -473,34 +839,42 @@ export default function AdminPage() {
                         onClick={() =>
                           aggiungiFascia(giorno.numero)
                         }
+                        style={{
+                          padding: "10px 13px",
+                          borderRadius: "11px",
+                          border: "1px solid #dddddd",
+                          background: "white",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                        }}
                       >
-                        + Aggiungi fascia
+                        + Fascia
                       </button>
                     )}
                   </div>
                 </div>
-
-                {!aperto && (
-                  <p style={{ color: "#666" }}>
-                    Nessuna prenotazione disponibile.
-                  </p>
-                )}
 
                 {aperto &&
                   fasce.map((fascia) => (
                     <div
                       key={fascia.id}
                       style={{
+                        background: "#f7f7f8",
+                        borderRadius: "14px",
+                        padding: "13px",
+                        marginBottom: "9px",
                         display: "flex",
-                        gap: "10px",
+                        gap: "9px",
                         alignItems: "center",
-                        marginBottom: "10px",
                         flexWrap: "wrap",
                       }}
                     >
                       <input
                         type="time"
-                        defaultValue={fascia.start_time.slice(0, 5)}
+                        defaultValue={fascia.start_time.slice(
+                          0,
+                          5
+                        )}
                         onBlur={(e) =>
                           modificaFascia(
                             fascia.id,
@@ -508,13 +882,29 @@ export default function AdminPage() {
                             e.target.value
                           )
                         }
+                        style={{
+                          padding: "10px",
+                          borderRadius: "10px",
+                          border: "1px solid #d8d8d8",
+                          background: "white",
+                          fontSize: "15px",
+                        }}
                       />
 
-                      <span>→</span>
+                      <span
+                        style={{
+                          color: "#777",
+                        }}
+                      >
+                        →
+                      </span>
 
                       <input
                         type="time"
-                        defaultValue={fascia.end_time.slice(0, 5)}
+                        defaultValue={fascia.end_time.slice(
+                          0,
+                          5
+                        )}
                         onBlur={(e) =>
                           modificaFascia(
                             fascia.id,
@@ -522,9 +912,24 @@ export default function AdminPage() {
                             e.target.value
                           )
                         }
+                        style={{
+                          padding: "10px",
+                          borderRadius: "10px",
+                          border: "1px solid #d8d8d8",
+                          background: "white",
+                          fontSize: "15px",
+                        }}
                       />
 
-                      <label>
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          fontSize: "14px",
+                          cursor: "pointer",
+                        }}
+                      >
                         <input
                           type="checkbox"
                           checked={fascia.is_active}
@@ -535,8 +940,8 @@ export default function AdminPage() {
                               e.target.checked
                             )
                           }
-                        />{" "}
-                        Fascia attiva
+                        />
+                        Attiva
                       </label>
 
                       <button
@@ -544,6 +949,14 @@ export default function AdminPage() {
                         onClick={() =>
                           eliminaFascia(fascia.id)
                         }
+                        style={{
+                          padding: "9px 12px",
+                          borderRadius: "10px",
+                          border: "1px solid #e1e1e1",
+                          background: "white",
+                          cursor: "pointer",
+                          marginLeft: "auto",
+                        }}
                       >
                         Elimina
                       </button>
@@ -554,27 +967,54 @@ export default function AdminPage() {
           })}
         </section>
 
+        {/* CHIUSURE STRAORDINARIE */}
         <section
           style={{
             background: "white",
-            padding: "24px",
-            borderRadius: "16px",
-            marginBottom: "40px",
+            padding: "22px",
+            borderRadius: "24px",
+            boxShadow: "0 8px 25px rgba(0,0,0,0.05)",
           }}
         >
-          <h2>Chiusure straordinarie</h2>
+          <div
+            style={{
+              color: "#888",
+              fontSize: "12px",
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              letterSpacing: "0.7px",
+              marginBottom: "4px",
+            }}
+          >
+            Disponibilità
+          </div>
 
-          <p>
-            Usa questa sezione per ferie, festività o giorni in cui non vuoi
-            accettare prenotazioni.
+          <h2
+            style={{
+              margin: "0 0 6px",
+              fontSize: "22px",
+            }}
+          >
+            Chiusure straordinarie
+          </h2>
+
+          <p
+            style={{
+              margin: "0 0 20px",
+              color: "#666",
+              lineHeight: 1.5,
+              fontSize: "14px",
+            }}
+          >
+            Ferie, festività o altri giorni in cui non vuoi
+            ricevere prenotazioni.
           </p>
 
           <div
             style={{
-              display: "flex",
+              display: "grid",
               gap: "10px",
-              flexWrap: "wrap",
-              marginBottom: "20px",
+              marginBottom: "22px",
             }}
           >
             <input
@@ -583,6 +1023,15 @@ export default function AdminPage() {
               onChange={(e) =>
                 setNuovaDataChiusura(e.target.value)
               }
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "14px",
+                borderRadius: "12px",
+                border: "1px solid #d8d8d8",
+                background: "white",
+                fontSize: "16px",
+              }}
             />
 
             <input
@@ -592,18 +1041,47 @@ export default function AdminPage() {
                 setMotivoChiusura(e.target.value)
               }
               placeholder="Motivo, es. Ferie"
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "14px",
+                borderRadius: "12px",
+                border: "1px solid #d8d8d8",
+                background: "white",
+                fontSize: "16px",
+              }}
             />
 
             <button
               type="button"
               onClick={aggiungiChiusura}
+              style={{
+                width: "100%",
+                padding: "14px",
+                borderRadius: "12px",
+                border: "none",
+                background: "#111111",
+                color: "white",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "15px",
+              }}
             >
               Aggiungi chiusura
             </button>
           </div>
 
           {chiusure.length === 0 && (
-            <p>Nessuna chiusura straordinaria.</p>
+            <div
+              style={{
+                background: "#f7f7f8",
+                padding: "16px",
+                borderRadius: "14px",
+                color: "#666",
+              }}
+            >
+              Nessuna chiusura straordinaria.
+            </div>
           )}
 
           {chiusure.map((chiusura) => (
@@ -613,16 +1091,26 @@ export default function AdminPage() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                gap: "15px",
-                padding: "12px 0",
-                borderBottom: "1px solid #eee",
+                gap: "12px",
+                padding: "14px 0",
+                borderBottom: "1px solid #eeeeee",
               }}
             >
               <div>
-                <strong>{chiusura.closure_date}</strong>
+                <strong>
+                  {chiusura.closure_date}
+                </strong>
 
                 {chiusura.reason && (
-                  <span> — {chiusura.reason}</span>
+                  <div
+                    style={{
+                      color: "#777",
+                      fontSize: "14px",
+                      marginTop: "3px",
+                    }}
+                  >
+                    {chiusura.reason}
+                  </div>
                 )}
               </div>
 
@@ -631,40 +1119,17 @@ export default function AdminPage() {
                 onClick={() =>
                   eliminaChiusura(chiusura.id)
                 }
+                style={{
+                  padding: "9px 12px",
+                  borderRadius: "10px",
+                  border: "1px solid #dddddd",
+                  background: "white",
+                  cursor: "pointer",
+                }}
               >
                 Elimina
               </button>
             </div>
-          ))}
-        </section>
-
-        <section style={{ marginBottom: "40px" }}>
-          <h2>Appuntamenti di oggi</h2>
-
-          {appuntamentiOggi.length === 0 && (
-            <p>Nessun appuntamento per oggi.</p>
-          )}
-
-          {appuntamentiOggi.map((prenotazione) => (
-            <SchedaPrenotazione
-              key={prenotazione.id}
-              prenotazione={prenotazione}
-            />
-          ))}
-        </section>
-
-        <section>
-          <h2>Prossimi appuntamenti</h2>
-
-          {prossimiAppuntamenti.length === 0 && (
-            <p>Nessun prossimo appuntamento.</p>
-          )}
-
-          {prossimiAppuntamenti.map((prenotazione) => (
-            <SchedaPrenotazione
-              key={prenotazione.id}
-              prenotazione={prenotazione}
-            />
           ))}
         </section>
       </div>
