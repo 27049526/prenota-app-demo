@@ -25,8 +25,11 @@ export default function PrenotaPage() {
   const [telefono, setTelefono] = useState("");
   const [email, setEmail] = useState("");
 
-  const [orariOccupati, setOrariOccupati] = useState<string[]>([]);
   const [orari, setOrari] = useState<string[]>([]);
+  const [caricamentoOrari, setCaricamentoOrari] =
+    useState(false);
+
+  const [salvataggio, setSalvataggio] = useState(false);
 
   useEffect(() => {
     inizializzaPagina();
@@ -35,25 +38,24 @@ export default function PrenotaPage() {
   async function inizializzaPagina() {
     setCaricamentoPagina(true);
 
-    const [
-      risultatoProfilo,
-      risultatoServizi,
-    ] = await Promise.all([
-      supabase
-        .from("professional_profile")
-        .select("*")
-        .order("id", { ascending: true })
-        .limit(1),
+    const [risultatoProfilo, risultatoServizi] =
+      await Promise.all([
+        supabase
+          .from("professional_profile")
+          .select("*")
+          .order("id", { ascending: true })
+          .limit(1),
 
-      supabase
-        .from("services")
-        .select("*")
-        .eq("is_active", true)
-        .order("id", { ascending: true }),
-    ]);
+        supabase
+          .from("services")
+          .select("*")
+          .eq("is_active", true)
+          .order("id", { ascending: true }),
+      ]);
 
     if (risultatoProfilo.error) {
       console.error(risultatoProfilo.error);
+
       alert(
         "Errore nel caricamento del profilo: " +
           risultatoProfilo.error.message
@@ -70,6 +72,7 @@ export default function PrenotaPage() {
 
     if (risultatoServizi.error) {
       console.error(risultatoServizi.error);
+
       alert(
         "Errore nel caricamento dei servizi: " +
           risultatoServizi.error.message
@@ -81,59 +84,128 @@ export default function PrenotaPage() {
     setCaricamentoPagina(false);
   }
 
+  // ==========================================
+  // GIORNI
+  // ==========================================
+
   const giorni = Array.from({ length: 7 }, (_, i) => {
     const data = new Date();
+
     data.setDate(data.getDate() + i);
 
     return {
       nome: data.toLocaleDateString("it-IT", {
         weekday: "short",
       }),
+
       data: data.toLocaleDateString("it-IT", {
         day: "numeric",
         month: "short",
       }),
+
       valore: data.toISOString().split("T")[0],
     };
   });
 
-  function generaOrari(
-    inizio: string,
-    fine: string,
-    intervalloMinuti = 30
-  ) {
-    const orariGenerati: string[] = [];
+  // ==========================================
+  // FUNZIONI ORARI
+  // ==========================================
 
-    const [oraInizio, minutiInizio] = inizio
+  function orarioInMinuti(orario: string) {
+    const valore = orario.slice(0, 5);
+
+    const [ore, minuti] = valore
       .split(":")
       .map(Number);
 
-    const [oraFine, minutiFine] = fine
-      .split(":")
-      .map(Number);
-
-    let minutiTotali = oraInizio * 60 + minutiInizio;
-    const minutiFinali = oraFine * 60 + minutiFine;
-
-    while (minutiTotali < minutiFinali) {
-      const ore = Math.floor(minutiTotali / 60);
-      const minuti = minutiTotali % 60;
-
-      const orario =
-        `${String(ore).padStart(2, "0")}:` +
-        `${String(minuti).padStart(2, "0")}`;
-
-      orariGenerati.push(orario);
-
-      minutiTotali += intervalloMinuti;
-    }
-
-    return orariGenerati;
+    return ore * 60 + minuti;
   }
 
-  async function caricaDisponibilita(
-    giornoValore: string
+  function minutiInOrario(minutiTotali: number) {
+    const ore = Math.floor(minutiTotali / 60);
+    const minuti = minutiTotali % 60;
+
+    return (
+      `${String(ore).padStart(2, "0")}:` +
+      `${String(minuti).padStart(2, "0")}`
+    );
+  }
+
+  function durataDaTesto(
+    durataTesto: string | null | undefined
   ) {
+    if (!durataTesto) return 30;
+
+    const numero = Number(
+      durataTesto.replace(/[^0-9]/g, "")
+    );
+
+    return numero > 0 ? numero : 30;
+  }
+
+  function massimoDivisoreComune(a: number, b: number) {
+    let x = Math.abs(a);
+    let y = Math.abs(b);
+
+    while (y !== 0) {
+      const resto = x % y;
+      x = y;
+      y = resto;
+    }
+
+    return x;
+  }
+
+  function calcolaIntervalloSlot() {
+    return 30;
+  }
+
+  function appuntamentiSiSovrappongono(
+    nuovoInizio: number,
+    nuovaFine: number,
+    appuntamentoInizio: number,
+    appuntamentoFine: number
+  ) {
+    return (
+      nuovoInizio < appuntamentoFine &&
+      nuovaFine > appuntamentoInizio
+    );
+  }
+
+  function finePrenotazioneInMinuti(
+    prenotazione: any
+  ) {
+    if (prenotazione.booking_end_time) {
+      return orarioInMinuti(
+        prenotazione.booking_end_time
+      );
+    }
+
+    const inizio = orarioInMinuti(
+      prenotazione.booking_time
+    );
+
+    const durata =
+      Number(
+        prenotazione.service_duration_minutes
+      ) ||
+      durataDaTesto(
+        prenotazione.service_duration
+      );
+
+    return inizio + durata;
+  }
+
+  // ==========================================
+  // CALCOLO DISPONIBILITÀ COMPLETO
+  // ==========================================
+
+  async function calcolaOrariDisponibili(
+    giornoValore: string,
+    durataServizio: number
+  ) {
+    // 1. Controlliamo prima le chiusure straordinarie.
+
     const {
       data: chiusura,
       error: erroreChiusura,
@@ -144,19 +216,17 @@ export default function PrenotaPage() {
       .maybeSingle();
 
     if (erroreChiusura) {
-      console.error(erroreChiusura);
-      alert(
+      throw new Error(
         "Errore nel controllo delle chiusure: " +
           erroreChiusura.message
       );
-      setOrari([]);
-      return;
     }
 
     if (chiusura) {
-      setOrari([]);
-      return;
+      return [];
     }
+
+    // 2. Recuperiamo il giorno della settimana.
 
     const data = new Date(
       giornoValore + "T12:00:00"
@@ -164,73 +234,151 @@ export default function PrenotaPage() {
 
     const giornoSettimana = data.getDay();
 
-    const {
-      data: disponibilita,
-      error,
-    } = await supabase
-      .from("availability")
-      .select(
-        "start_time, end_time, is_active, day_enabled"
-      )
-      .eq("day_of_week", giornoSettimana)
-      .eq("is_active", true)
-      .eq("day_enabled", true);
+    // 3. Recuperiamo fasce di lavoro e prenotazioni
+    //    già confermate.
 
-    if (error) {
-      console.error(error);
-      alert(
+    const [
+      risultatoDisponibilita,
+      risultatoPrenotazioni,
+    ] = await Promise.all([
+      supabase
+        .from("availability")
+        .select(
+          "start_time, end_time, is_active, day_enabled"
+        )
+        .eq("day_of_week", giornoSettimana)
+        .eq("is_active", true)
+        .eq("day_enabled", true),
+
+      supabase
+        .from("bookings")
+        .select(
+          "booking_time, booking_end_time, service_duration_minutes, service_duration"
+        )
+        .eq("booking_date", giornoValore)
+        .eq("status", "confirmed"),
+    ]);
+
+    if (risultatoDisponibilita.error) {
+      throw new Error(
         "Errore nel caricamento della disponibilità: " +
-          error.message
+          risultatoDisponibilita.error.message
       );
-      setOrari([]);
-      return;
     }
+
+    if (risultatoPrenotazioni.error) {
+      throw new Error(
+        "Errore nel caricamento degli appuntamenti: " +
+          risultatoPrenotazioni.error.message
+      );
+    }
+
+    const disponibilita =
+      risultatoDisponibilita.data || [];
+
+    const prenotazioni =
+      risultatoPrenotazioni.data || [];
+
+    const intervalloSlot =
+      calcolaIntervalloSlot();
 
     const nuoviOrari: string[] = [];
 
-    (disponibilita || []).forEach((fascia: any) => {
-      const orariFascia = generaOrari(
-        fascia.start_time.slice(0, 5),
-        fascia.end_time.slice(0, 5)
-      );
+    // 4. Per ogni fascia di lavoro generiamo soltanto
+    //    gli inizi in cui il servizio entra completamente.
 
-      nuoviOrari.push(...orariFascia);
+    disponibilita.forEach((fascia: any) => {
+      const inizioFascia =
+        orarioInMinuti(fascia.start_time);
+
+      const fineFascia =
+        orarioInMinuti(fascia.end_time);
+
+      let possibileInizio = inizioFascia;
+
+      while (
+        possibileInizio + durataServizio <=
+        fineFascia
+      ) {
+        const possibileFine =
+          possibileInizio + durataServizio;
+
+        const sovrapposto =
+          prenotazioni.some(
+            (prenotazione: any) => {
+              const appuntamentoInizio =
+                orarioInMinuti(
+                  prenotazione.booking_time
+                );
+
+              const appuntamentoFine =
+                finePrenotazioneInMinuti(
+                  prenotazione
+                );
+
+              return appuntamentiSiSovrappongono(
+                possibileInizio,
+                possibileFine,
+                appuntamentoInizio,
+                appuntamentoFine
+              );
+            }
+          );
+
+        if (!sovrapposto) {
+          nuoviOrari.push(
+            minutiInOrario(possibileInizio)
+          );
+        }
+
+        possibileInizio += intervalloSlot;
+      }
     });
 
-    const orariUnici =
-      Array.from(new Set(nuoviOrari)).sort();
-
-    setOrari(orariUnici);
+    return Array.from(
+      new Set(nuoviOrari)
+    ).sort();
   }
 
-  async function caricaOrariOccupati(
-    data: string
+  async function selezionaGiorno(
+    giorno: any
   ) {
-    const {
-      data: prenotazioni,
-      error,
-    } = await supabase
-      .from("bookings")
-      .select("booking_time")
-      .eq("booking_date", data)
-      .eq("status", "confirmed");
-
-    if (error) {
-      console.error(error);
-      alert(
-        "Errore nel caricamento degli orari: " +
-          error.message
-      );
+    if (!servizioSelezionato) {
       return;
     }
 
-    const occupati = (prenotazioni || []).map(
-      (prenotazione: any) =>
-        prenotazione.booking_time
-    );
+    setGiornoSelezionato(giorno);
+    setOrarioSelezionato(null);
+    setOrari([]);
+    setCaricamentoOrari(true);
 
-    setOrariOccupati(occupati);
+    try {
+      const nuoviOrari =
+        await calcolaOrariDisponibili(
+          giorno.valore,
+          Number(
+            servizioSelezionato.duration_minutes
+          )
+        );
+
+      setOrari(nuoviOrari);
+    } catch (error: any) {
+      console.error(error);
+
+      alert(
+        error?.message ||
+          "Errore nel caricamento degli orari."
+      );
+
+      setOrari([]);
+    }
+
+    setCaricamentoOrari(false);
   }
+
+  // ==========================================
+  // PRENOTAZIONE
+  // ==========================================
 
   async function confermaPrenotazione(
     e: React.FormEvent<HTMLFormElement>
@@ -238,7 +386,7 @@ export default function PrenotaPage() {
     e.preventDefault();
 
     if (!nome || !telefono || !email) {
-      alert("Compila tutti i campi");
+      alert("Compila tutti i campi.");
       return;
     }
 
@@ -250,14 +398,73 @@ export default function PrenotaPage() {
       alert(
         "Seleziona servizio, giorno e orario."
       );
+
       return;
     }
 
+    setSalvataggio(true);
+
+    const durataMinuti = Number(
+      servizioSelezionato.duration_minutes
+    );
+
+    // Prima di salvare ricontrolliamo da Supabase.
+    // In questo modo se qualcuno ha prenotato nel
+    // frattempo non confermiamo uno slot ormai occupato.
+
+    try {
+      const orariAggiornati =
+        await calcolaOrariDisponibili(
+          giornoSelezionato.valore,
+          durataMinuti
+        );
+
+      if (
+        !orariAggiornati.includes(
+          orarioSelezionato
+        )
+      ) {
+        alert(
+          "Questo orario non è più disponibile. Scegli un altro orario."
+        );
+
+        setOrari(orariAggiornati);
+        setOrarioSelezionato(null);
+        setMostraForm(false);
+        setSalvataggio(false);
+
+        return;
+      }
+    } catch (error: any) {
+      console.error(error);
+
+      alert(
+        error?.message ||
+          "Errore nel controllo della disponibilità."
+      );
+
+      setSalvataggio(false);
+      return;
+    }
+
+    const inizioMinuti =
+      orarioInMinuti(
+        orarioSelezionato
+      );
+
+    const fineMinuti =
+      inizioMinuti + durataMinuti;
+
+    const fineOrario =
+      minutiInOrario(fineMinuti);
+
     const durataTesto =
-      `${servizioSelezionato.duration_minutes} min`;
+      `${durataMinuti} min`;
 
     const prezzoTesto =
-      `${Number(servizioSelezionato.price).toFixed(2)} €`;
+      `${Number(
+        servizioSelezionato.price
+      ).toFixed(2)} €`;
 
     const { error } = await supabase
       .from("bookings")
@@ -266,11 +473,28 @@ export default function PrenotaPage() {
           customer_name: nome,
           customer_phone: telefono,
           customer_email: email,
-          service_name: servizioSelezionato.name,
-          service_duration: durataTesto,
-          service_price: prezzoTesto,
-          booking_date: giornoSelezionato.valore,
-          booking_time: orarioSelezionato,
+
+          service_name:
+            servizioSelezionato.name,
+
+          service_duration:
+            durataTesto,
+
+          service_duration_minutes:
+            durataMinuti,
+
+          service_price:
+            prezzoTesto,
+
+          booking_date:
+            giornoSelezionato.valore,
+
+          booking_time:
+            orarioSelezionato,
+
+          booking_end_time:
+            fineOrario,
+
           status: "confirmed",
         },
       ]);
@@ -284,13 +508,16 @@ export default function PrenotaPage() {
         );
       } else {
         alert(
-          "Errore salvataggio: " + error.message
+          "Errore salvataggio: " +
+            error.message
         );
       }
 
+      setSalvataggio(false);
       return;
     }
 
+    setSalvataggio(false);
     setPrenotazioneConfermata(true);
   }
 
@@ -298,10 +525,9 @@ export default function PrenotaPage() {
     return `${Number(prezzo).toFixed(2)} €`;
   }
 
-  const orariDisponibili = orari.filter(
-    (orario) =>
-      !orariOccupati.includes(orario)
-  );
+  // ==========================================
+  // CARICAMENTO
+  // ==========================================
 
   if (caricamentoPagina) {
     return (
@@ -329,6 +555,10 @@ export default function PrenotaPage() {
       </main>
     );
   }
+
+  // ==========================================
+  // CONFERMA
+  // ==========================================
 
   if (prenotazioneConfermata) {
     return (
@@ -423,7 +653,10 @@ export default function PrenotaPage() {
 
             <p>
               <strong>Durata:</strong>{" "}
-              {servizioSelezionato.duration_minutes} min
+              {
+                servizioSelezionato.duration_minutes
+              }{" "}
+              min
             </p>
 
             <p style={{ marginBottom: 0 }}>
@@ -458,6 +691,10 @@ export default function PrenotaPage() {
       </main>
     );
   }
+
+  // ==========================================
+  // PAGINA PRENOTAZIONE
+  // ==========================================
 
   return (
     <main
@@ -503,6 +740,8 @@ export default function PrenotaPage() {
               "0 12px 35px rgba(0,0,0,0.07)",
           }}
         >
+          {/* PROFILO */}
+
           <div
             style={{
               display: "flex",
@@ -570,6 +809,8 @@ export default function PrenotaPage() {
 
           {!mostraForm && (
             <>
+              {/* SERVIZIO */}
+
               <div style={{ marginBottom: "30px" }}>
                 <p style={stepStyle}>
                   Passaggio 1
@@ -603,10 +844,11 @@ export default function PrenotaPage() {
                         type="button"
                         onClick={() => {
                           setServizioSelezionato(servizio);
+
                           setGiornoSelezionato(null);
                           setOrarioSelezionato(null);
                           setOrari([]);
-                          setOrariOccupati([]);
+                          setMostraForm(false);
                         }}
                         style={{
                           display: "flex",
@@ -615,12 +857,15 @@ export default function PrenotaPage() {
                           gap: "15px",
                           padding: "16px",
                           borderRadius: "16px",
+
                           border: selezionato
                             ? "2px solid #111111"
                             : "1px solid #e2e2e2",
+
                           background: selezionato
                             ? "#f5f5f5"
                             : "white",
+
                           cursor: "pointer",
                           textAlign: "left",
                         }}
@@ -642,7 +887,10 @@ export default function PrenotaPage() {
                               color: "#777",
                             }}
                           >
-                            {servizio.duration_minutes} min
+                            {
+                              servizio.duration_minutes
+                            }{" "}
+                            min
                           </div>
                         </div>
 
@@ -656,6 +904,8 @@ export default function PrenotaPage() {
                   })}
                 </div>
               </div>
+
+              {/* GIORNO */}
 
               {servizioSelezionato && (
                 <div style={{ marginBottom: "30px" }}>
@@ -684,33 +934,25 @@ export default function PrenotaPage() {
                         <button
                           key={giorno.valore}
                           type="button"
-                          onClick={async () => {
-                            setGiornoSelezionato(giorno);
-                            setOrarioSelezionato(null);
-                            setOrari([]);
-                            setOrariOccupati([]);
-
-                            await Promise.all([
-                              caricaDisponibilita(
-                                giorno.valore
-                              ),
-                              caricaOrariOccupati(
-                                giorno.valore
-                              ),
-                            ]);
-                          }}
+                          onClick={() =>
+                            selezionaGiorno(giorno)
+                          }
                           style={{
                             padding: "14px 8px",
                             borderRadius: "14px",
+
                             border: selezionato
                               ? "2px solid #111111"
                               : "1px solid #e2e2e2",
+
                             background: selezionato
                               ? "#111111"
                               : "white",
+
                             color: selezionato
                               ? "white"
                               : "#111111",
+
                             cursor: "pointer",
                             minHeight: "70px",
                           }}
@@ -718,10 +960,13 @@ export default function PrenotaPage() {
                           <div
                             style={{
                               fontSize: "13px",
-                              textTransform: "capitalize",
+                              textTransform:
+                                "capitalize",
+
                               opacity: selezionato
                                 ? 0.8
                                 : 0.6,
+
                               marginBottom: "5px",
                             }}
                           >
@@ -738,6 +983,8 @@ export default function PrenotaPage() {
                 </div>
               )}
 
+              {/* ORARI */}
+
               {giornoSelezionato && (
                 <div>
                   <p style={stepStyle}>
@@ -748,10 +995,15 @@ export default function PrenotaPage() {
                     Scegli un orario
                   </h2>
 
-                  {orariDisponibili.length === 0 ? (
+                  {caricamentoOrari ? (
                     <div style={emptyStyle}>
-                      Nessuna disponibilità per questo
-                      giorno. Scegli un&apos;altra data.
+                      Controllo disponibilità...
+                    </div>
+                  ) : orari.length === 0 ? (
+                    <div style={emptyStyle}>
+                      Nessuna disponibilità compatibile
+                      con la durata di questo servizio.
+                      Scegli un&apos;altra data.
                     </div>
                   ) : (
                     <div
@@ -762,7 +1014,7 @@ export default function PrenotaPage() {
                         gap: "9px",
                       }}
                     >
-                      {orariDisponibili.map((orario) => {
+                      {orari.map((orario) => {
                         const selezionato =
                           orarioSelezionato === orario;
 
@@ -771,20 +1023,26 @@ export default function PrenotaPage() {
                             key={orario}
                             type="button"
                             onClick={() =>
-                              setOrarioSelezionato(orario)
+                              setOrarioSelezionato(
+                                orario
+                              )
                             }
                             style={{
                               padding: "14px 8px",
                               borderRadius: "12px",
+
                               border: selezionato
                                 ? "2px solid #111111"
                                 : "1px solid #e1e1e1",
+
                               background: selezionato
                                 ? "#111111"
                                 : "white",
+
                               color: selezionato
                                 ? "white"
                                 : "#111111",
+
                               fontWeight: "bold",
                               fontSize: "15px",
                               cursor: "pointer",
@@ -798,6 +1056,8 @@ export default function PrenotaPage() {
                   )}
                 </div>
               )}
+
+              {/* RIEPILOGO */}
 
               {orarioSelezionato && (
                 <div
@@ -829,11 +1089,19 @@ export default function PrenotaPage() {
                     <br />
                     {giornoSelezionato.data} alle{" "}
                     {orarioSelezionato}
+                    <br />
+                    Durata:{" "}
+                    {
+                      servizioSelezionato.duration_minutes
+                    }{" "}
+                    min
                   </div>
 
                   <button
                     type="button"
-                    onClick={() => setMostraForm(true)}
+                    onClick={() =>
+                      setMostraForm(true)
+                    }
                     style={primaryButton}
                   >
                     Continua
@@ -843,11 +1111,15 @@ export default function PrenotaPage() {
             </>
           )}
 
+          {/* FORM */}
+
           {mostraForm && (
             <>
               <button
                 type="button"
-                onClick={() => setMostraForm(false)}
+                onClick={() =>
+                  setMostraForm(false)
+                }
                 style={{
                   border: "none",
                   background: "transparent",
@@ -879,10 +1151,16 @@ export default function PrenotaPage() {
               >
                 {servizioSelezionato.name} ·{" "}
                 {giornoSelezionato.data} ·{" "}
-                {orarioSelezionato}
+                {orarioSelezionato} ·{" "}
+                {
+                  servizioSelezionato.duration_minutes
+                }{" "}
+                min
               </p>
 
-              <form onSubmit={confermaPrenotazione}>
+              <form
+                onSubmit={confermaPrenotazione}
+              >
                 <label style={labelStyle}>
                   Nome e cognome
                 </label>
@@ -893,6 +1171,7 @@ export default function PrenotaPage() {
                   onChange={(e) =>
                     setNome(e.target.value)
                   }
+                  required
                   placeholder="Mario Bianchi"
                   style={formInputStyle}
                 />
@@ -907,6 +1186,7 @@ export default function PrenotaPage() {
                   onChange={(e) =>
                     setTelefono(e.target.value)
                   }
+                  required
                   placeholder="333 1234567"
                   style={formInputStyle}
                 />
@@ -921,6 +1201,7 @@ export default function PrenotaPage() {
                   onChange={(e) =>
                     setEmail(e.target.value)
                   }
+                  required
                   placeholder="mario@email.it"
                   style={{
                     ...formInputStyle,
@@ -930,9 +1211,18 @@ export default function PrenotaPage() {
 
                 <button
                   type="submit"
-                  style={primaryButton}
+                  disabled={salvataggio}
+                  style={{
+                    ...primaryButton,
+                    opacity: salvataggio ? 0.65 : 1,
+                    cursor: salvataggio
+                      ? "default"
+                      : "pointer",
+                  }}
                 >
-                  Conferma prenotazione
+                  {salvataggio
+                    ? "Controllo disponibilità..."
+                    : "Conferma prenotazione"}
                 </button>
               </form>
             </>
