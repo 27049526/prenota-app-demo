@@ -517,6 +517,38 @@ export default function PrenotaPage() {
       return;
     }
 
+    try {
+      const rispostaEmail = await fetch("/api/send-confirmation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerName: nome,
+          customerEmail: email,
+          professionalName: profilo?.name || "Professionista",
+          serviceName: servizioSelezionato.name,
+          bookingDate: giornoSelezionato.data,
+          bookingTime: orarioSelezionato,
+          durationMinutes: servizioSelezionato.duration_minutes,
+          price: prezzoFormattato(servizioSelezionato.price),
+        }),
+      });
+    
+      if (!rispostaEmail.ok) {
+        const erroreEmail = await rispostaEmail.json();
+    
+        console.error(
+          "Prenotazione salvata, ma email non inviata:",
+          erroreEmail
+        );
+      }
+    } catch (erroreEmail) {
+      console.error(
+        "Prenotazione salvata, ma email non inviata:",
+        erroreEmail
+      );
+    }
     setSalvataggio(false);
     setPrenotazioneConfermata(true);
   }
